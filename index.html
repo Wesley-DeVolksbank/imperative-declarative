@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Imperative vs Reactive</title>
+
+	<link rel="stylesheet" href="dist/reset.css">
+	<link rel="stylesheet" href="dist/reveal.css">
+	<link rel="stylesheet" href="dist/theme/night.css">
+	<link rel="stylesheet" href="plugin/highlight/monokai.css">
+	<script src="plugin/highlight/highlight.js"></script>
+	<!-- Theme used for syntax highlighted code -->
+	<link rel="stylesheet" href="plugin/highlight/monokai.css">
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section data-auto-animate>
+				<div style="display: flex; align-items:center; justify-content: center;">
+					<img src="./examples/assets/angular-logo.png" alt="Angular logo" style="height: 200px;">
+					<p style="margin: 0 2.5vw 0 1vw;">❤️</p>
+					<img src="./examples/assets/rxjs.png" alt="RxJS logo" style="height: 160px;">
+				</div>
+				<h2 data-id="title-props">Imperative vs Declarative</h2>
+				<small>door Wesley van Drimmelen</small>
+
+				<aside class="notes">
+					Welkom allemaal, je zult misschien denken, wie is deze gozer. Ik ben Wesley van Drimmelen en ik zit
+					in het Mijn Geld team, voorheen bekend als Monki. Hier houd ik me bezig met front-end ontwikkeling
+					en in mijn vrije tijd probeer ik veel nieuwe features, tools en frameworks te ontdekken. Vandaag wil
+					ik jullie meenemen in de wereld van declarative programming in Angular en het verschil tussen
+					imperative programming, dat is wat we binnen de Volksbank voornamelijk gebruiken
+				</aside>
+			</section>
+			<section data-auto-animate>
+				<h2 data-id="title-props">Belangrijke mededeling!</h2>
+			</section>
+			<section data-transition="concave-out">
+				<iframe src="https://giphy.com/embed/pOdFSgpHoOpqavYayw" width="480" height="480" frameBorder="0"
+					class="giphy-embed" allowFullScreen></iframe>
+				<aside class="notes">
+					Ik wil als eerst een mededeling doen: ik ben hier niet om iedereen te overtuigen om declarative code
+					te gaan schrijven of te zeggen dat iedereen die imperative code schrijft verkeerd bezig is. Wij
+					gebruiken binnen ons team ook imperative programming, maar ik ben wel voorstander van meer
+					declarative programming binnen De Volksbank. Dus helemaal neutraal ben ik niet.
+				</aside>
+			</section>
+			<section>
+				<h2>Wat is het?</h2>
+				<p class="fragment">paradigma's</p>
+				<aside class="notes">
+					<p>Weet iemand toevallig wat imperative en declarative programming is?</p>
+					<p>Imperative en declarative programming zijn software paradigma's, en een paradigma is eigenlijk
+						een samenvoegsel van verschillende modellen en theorieën</p>
+					<p>Je zou dus kunnen zeggen dat het aparte software methodieken zijn, en ze staan normaal lijnrecht
+						tegenover elkaar.</p>
+				</aside>
+			</section>
+			<section>
+				<h4 class="fragment">Imperative <span class="fragment">= wat je gaat doen (what)</span></h4>
+				<h4 class="fragment">Declarative <span class="fragment">= wat en hoe je wilt (how)</span></h4>
+
+				<aside class="notes">
+					<p>Bij het schrijven van imperative code zeg je eigenlijk: dit is wat je gaat doen. Je vertelt stap
+						voor stap wat de code moet gaan doen: eerst haal je de data op, dan doe je dit en dan dit…
+
+						Bij het schrijven van declarative code geef je instructies met: dit is wat ik wil. Je schrijft
+						“pure functions” waar gegevens in- en uitgaan. Als er iets in de gegevens verandert, dan
+						verandert de applicatie mee.
+
+						Je kunt over imperative programming zeggen dat het eigenlijk wel een standaard is binnen de
+						meeste applicaties, maar met behulp van RxJS kunnen we eigenlijk applicaties veel strakker
+						inrichten.
+						De vraag is dus, hoe maken we een imperative stukje code declarative?
+						En wat hebben observables en subscriptions hier mee te maken.
+
+					</p>
+				</aside>
+			</section>
+			<section data-auto-animate data-transition="zoom-in">
+				<img src="./examples/assets/rxjs-meme.jpeg" alt="RxJS meme">
+				<aside class="notes">
+					<p>
+						Veel mensen missen het punt van declarative code, omdat ze denken dat RxJS te ingewikkeld en
+						onduidelijk is. Terwijl Declarative coding juist draait om duidelijkheid en alles in 1 oogopslag
+						kunnen zien, vandaar de term declarative.
+					</p>
+					<p>Laten we anders even een voorbeeldje erbij pakken</p>
+				</aside>
+			</section>
+			<section data-auto-animate>
+				<h3>Imperative</h3>
+				<pre>
+					<code data-line-numbers="0|14|16|17|21|22|23-25|28-31" data-trim class="language-typescript">
+						@Component({
+							selector: 'app-imperative',
+							template: `
+								<h2>Imperative (simple)</h2>
+								<ul>
+									<li *ngFor="let item of transactions">
+										{{ item.id }}
+									</li>
+								</ul>
+							`
+						})
+						export class ImperativeSimpleComponent implements OnInit, OnDestroy {
+
+							transactionService = inject(TransactionService);
+
+							destroy$ = new Subject();
+							transactions: Transaction[] = [];
+							
+							ngOnInit(): void {
+								this.transactionService
+									.getTransactions()
+									.pipe(takeUntil(this.destroy$))
+									.subscribe((transactions) => {
+										this.transactions = transactions;
+									});
+							}
+
+							ngOnDestroy(): void {
+								this.destroy$.next(true);
+								this.destroy$.unsubscribe();
+							}
+						}
+					</code>
+				</pre>
+			</section>
+			<section data-auto-animate>
+				<h3>Declarative</h3>
+
+				<pre>
+					<code data-line-numbers="0|14|16|6" data-trim class="language-typescript">
+						@Component({
+							selector: 'app-declarative',
+							template: `
+								<h2>Declarative (simple)</h2>
+								<ul>
+									<li *ngFor="let item of transactions$ | async">
+										{{ item.id }}
+									</li>
+								</ul>
+							`
+						})
+						export class DeclarativeSimpleComponent {
+							
+							transactionService = inject(TransactionService);
+							
+							transactions$ = this.transactionService.getTransactions();
+							
+						}
+					</code>
+				</pre>
+			</section>
+			<section data-auto-animate>
+				<h4>.subscribe() === imperative</h4>
+			</section>
+			<section data-auto-animate>
+				<h3>Easypeasy! Right?</h4>
+					<p class="fragment">Maar...</p>
+					<p class="fragment" data-id="title">Wat als je applicatie iets ingewikkelder is?</p>
+			</section>
+			<section data-auto-animate>
+				<p class="fragment" data-id="title">Wat als je applicatie iets ingewikkelder is?</p>
+
+				<img src="./examples/assets/example-list.gif" alt="example">
+			</section>
+			<section data-auto-animate data-transition="slide-in convex-out">
+				<h3>Imperative</h3>
+
+				<pre>
+					<code data-line-numbers="0|5-11|16|18-22|25-32|29-31|34-43|37-39|40|44-47" data-trim class="language-typescript">
+						@Component({
+							selector: 'app-imperative',
+							template: `
+								<h2>Imperative</h2>
+								<input type="text" [formControl]="searchForm">
+								<ul>
+									<li *ngFor="let item of filteredTransactions">
+										{{ item.id }}
+									</li>
+								</ul>
+								<p *ngIf="isEmpty">No transactions</p>
+							`
+						})
+						export class ImperativeComponent implements OnInit, OnDestroy {
+							
+							transactionService = inject(TransactionService);
+							
+							destroy$ = new Subject();
+							transactions: Transaction[] = [];
+							filteredTransactions: Transaction[] = [];
+							searchForm = new FormControl('');
+							isEmpty?: boolean;
+							
+							ngOnInit(): void {
+								this.transactionService
+									.getTransactions()
+									.pipe(takeUntil(this.destroy$))
+									.subscribe((transactions) => {
+										this.transactions = transactions;
+										this.filteredTransactions = transactions;
+										this.isEmpty = this.filteredTransactions.length === 0;
+									});
+							
+								this.searchForm.valueChanges
+									.pipe(takeUntil(this.destroy$))
+									.subscribe((searchTerm) => {
+										this.filteredTransactions = this.transactions.filter(
+											transaction => searchTerm === '' || transaction.id.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
+										);
+										this.isEmpty = this.filteredTransactions.length === 0;
+									});
+							}
+							
+							ngOnDestroy(): void {
+								this.destroy$.next(true);
+								this.destroy$.unsubscribe();
+							}
+						}
+						  
+					</code>
+				</pre>
+			</section>
+			<section data-auto-animate data-transition="convex-in concave-out">
+				<h3>Declarative</h3>
+
+				<pre>
+					<code data-line-numbers="0|7,11|16-18|20-28|21,22|24-27|30-32" data-trim class="language-typescript">
+						@Component({
+							selector: 'app-declarative',
+							template: `
+								<h2>Declarative</h2>
+								<input type="text" [formControl]="searchForm">
+								<ul>
+									<li *ngFor="let item of filteredTransactions$ | async">
+										{{ item.id }}
+									</li>
+								</ul>
+								<p *ngIf="isEmpty$ | async">No transactions</p>
+							`
+						})
+						export class DeclarativeComponent {
+							
+							transactionService = inject(TransactionService);
+							
+							searchForm = new FormControl('');
+							
+							filteredTransactions$ = combineLatest([
+								this.transactionService.getTransactions(),
+								this.searchForm.valueChanges.pipe(startWith(''))
+							]).pipe(
+								map(([transactions, searchTerm]) => 
+									transactions.filter(
+										transaction => searchTerm === '' || transaction.id.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase())
+									))
+							);
+							
+							isEmpty$ = this.filteredTransactions$.pipe(
+								map((transactions) => transactions.length === 0)
+							);
+						}
+					</code>
+				</pre>
+			</section>
+			<section data-transition="concave-in fade-out">
+				<h4>Vergelijking</h4>
+				<img src="./examples/assets/code-compare.png" alt="Comparison">
+				<aside class="notes">
+					<p>
+						Links zie je de imperative manier en ik begrijp natuurlijk dat het eigenlijk voor zich spreekt.
+						We zijn het tenslotte ook allemaal gewend om zo te schrijven.
+						Ook geef het duidelijk aan wat het stukje code doet en in welke volgorde, maar wat als je
+						componenten uitgebreid worden en er allemaal side-effects kunnen ontstaan.
+					</p>
+
+					<p>
+						Als je rechts kijkt kan je misschien denken dat het er ingewikkeld uitziet en dat alleen gekke
+						hacker-achtige front-end developers dit gebruiken
+						die zich slim willen voordoen door stukjes code te schrijven die moeilijk te begrijpen zijn in
+						plaats van code die makkelijk te lezen is.
+					</p>
+
+					<p>
+						In zulke simpele cases kan je misschien denken: waarom zou ik dan declarative code schrijven?
+						Het voelt namelijk niet intuitief.
+					</p>
+				</aside>
+			</section>
+			<section data-transition="fade-in">
+				<h4>Vergelijking</h4>
+				<img src="./examples/assets/code-compare-2.png" alt="Comparison">
+
+				<aside class="notes">
+					Vaak is het ook zo dat je even moet kijken naar een stukje declarative code om goed te begrijpen wat
+					het doet.
+					Waar je hier naar kijkt is eigenlijk een totale definitie van wat de filteredTransactions is. Nu,
+					maar ook alles wat het in de toekomst kan zijn.
+					Dat maakt dat het meer complexiteit met zich mee brengt dan het aanpassen van een variable op
+					verschillende plekken binnen je component.
+				</aside>
+			</section>
+			<section data-transition="fade-in fade-out">
+				<img src="./examples/assets/excalidraw-example.png" alt="Comparison">
+
+				<aside class="notes">
+					Als je een abstract beeld hiervan zou maken, dan zou het er ongeveer zo uit komen te zien. De
+					imperative code wordt vanuit verschillende plekken
+					in je component toegevoegd, aangepast of verwijderd. Naarmate je component wordt uitgebreid wordt
+					dit complexer en kan je het overzicht kwijt raken.
+
+					De declarative manier heeft alle logica van de variable in zich door middel van streams waar hij
+					naar luistert en op acteert.
+					Nu is dit geen representatief beeld van een complexe applicatie, maar ik hoop dat jullie een beeld
+					hebben van wat je hier mee kunt doen.
+					Je ziet de data in een flow van boven naar beneden gaan waardoor de data veranderd op het moment dat
+					er boven iets veranderd.
+				</aside>
+			</section>
+			<section data-transition="fade-in">
+				<img src="./examples/assets/excalidraw-example-extended.png" alt="Comparison">
+
+				<aside class="notes">
+					Als je ons zoek formuliertje omzet naar eenzelfde soort diagram, dan krijg je dit.
+				</aside>
+			</section>
+			<section data-auto-animate>
+				<h4 data-id="error-title">Error handling</h4>
+				<pre>
+					<code data-line-numbers data-trim data-noescape data-ln-start-from="17" class="language-typescript">
+						transactions$ = this.transactionService.getTransactions();
+						transactionsError$ = this.transactions$.pipe(
+							ignoreElements(),
+							catchError((error) => of(error))
+						);
+					</code>
+				</pre>
+			</section>
+			<section data-auto-animate>
+				<h4 data-id="error-title">Error handling</h4>
+				<pre>
+					<code data-line-numbers data-trim class="language-html">
+
+						<ng-container *ngIf="{ 
+							transactions: filteredTransactions$ | async,
+							error: transactionsError$ | async 
+						} as data">
+							<ng-container *ngIf="!data.error && data.transactions as transactions; else loading;">
+							  <input type="text" [formControl]="searchForm">
+							  <ul>
+								<li *ngFor="let item of transactions">
+								  {{ item.id }}
+								</li>
+							  </ul>
+							  <p *ngIf="isEmpty$ | async">No transactions</p>
+							</ng-container>
+					  
+							<ng-template #loading>
+							  <p *ngIf="!data.error">Loading...</p>
+							</ng-template>
+					  
+							<p *ngIf="data.error">{{ data.error }}</p>
+					  
+						  </ng-container>
+					</code>
+				</pre>
+			</section>
+			<section>
+				<h2>Moeten we dan fully declarative gaan?</h2>
+			</section>
+			<section>
+				<h2>Nee</h2>
+				<ul>
+					<li class="fragment">click events</li>
+					<li class="fragment">emitters</li>
+					<li class="fragment">stores</li>
+				</ul>
+			</section>
+			<section>
+				<h1>Summary</h1>
+
+				<aside class="notes">
+					Ik denk dat de meeste mensen het erover eens zijn dat de declarative manier niet zo intuïtief
+					is als imperative. Maar zelfs als je niet bekend bent met reative programming,
+					denk ik dat het ook behoorlijk is duidelijk om te zien dat ondanks de toegevoegde moeilijkheid de
+					declarative manier eigenlijk wat eenvoudiger/netter is.
+					Het kost misschien wat tijd en aandacht om het in eerste instantie door te krijgen, maar nadat je er
+					eenmaal aan went is het super fijn.
+				</aside>
+			</section>
+			<section>
+				<img src="./examples/assets/rxjs.png" alt="RxJS logo" style="height: 160px;">
+				<h4>RxJS</h4>
+
+				<aside class="notes">
+					Het algemene idee is dat we in plaats van subscribe te gebruiken, proberen de verschillende
+					RxJS-operators streams samen te voegen/combineren/bewerken en te gebruiken om te doen wat
+					we nodig hebben.
+
+					Er zijn veel RxJS-operators, wat zowel goed als slecht is. Goed omdat je er zo ongeveer alles mee
+					kunt doen, slecht omdat het erg verwarrend kan zijn om te leren wanneer je wat en wanneer moet
+					gebruiken. Denken in termen van het oplossen van problemen met waarneembare stromen kan behoorlijk
+					uitdagend zijn.
+				</aside>
+			</section>
+			<section data-auto-animate>
+				<div class="r-stack">
+					<img class="fragment" src="./examples/assets/tree-1.png" alt="Decision tree RxJS" />
+					<img class="fragment" src="./examples/assets/tree-2.png" alt="Decision tree RxJS" />
+					<img class="fragment" src="./examples/assets/tree-3.png" alt="Decision tree RxJS" />
+				</div>
+				<small data-id="tree-url">rxjs.dev/operator-decision-tree</small>
+
+				<aside class="notes">
+					Gelukkig zijn er handige tools zoals de RxJS decision tree waarmee je kunt bepalen welke operators
+					je nodig hebt
+				</aside>
+			</section>
+			<section data-auto-animate>
+				<div>
+					<img src="./examples/assets/tree-4.png" alt="Decision tree RxJS" />
+				</div>
+
+				<small data-id="tree-url">rxjs.dev/operator-decision-tree</small>
+
+				<aside class="notes">
+				</aside>
+			</section>
+			<section>
+				<h1>The end.</h1>
+				<small>tip: youtube.com/@JoshuaMorony</small>
+			</section>
+		</div>
+	</div>
+
+	<script src="dist/reveal.js"></script>
+	<script src="plugin/notes/notes.js"></script>
+	<script src="plugin/markdown/markdown.js"></script>
+	<script src="plugin/highlight/highlight.js"></script>
+	<script>
+		// More info about initialization & config:
+		// - https://revealjs.com/initialization/
+		// - https://revealjs.com/config/
+		Reveal.initialize({
+			hash: false,
+			controls: false,
+
+			// Learn about plugins: https://revealjs.com/plugins/
+			plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+		});
+	</script>
+</body>
+
+</html>
