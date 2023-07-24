@@ -170,11 +170,11 @@
 
 				<img src="./examples/assets/example-list.gif" alt="example">
 			</section>
-			<section data-auto-animate data-transition="slide-in convex-out">
+			<section data-auto-animate>
 				<h3>Imperative</h3>
 
 				<pre>
-					<code data-line-numbers="0|5-11|16|18-22|25-32|29-31|34-43|37-39|40|44-47" data-trim class="language-typescript">
+					<code data-line-numbers="0|5-11|16|18-22|25-32|29-31|34-43|37-39|31,40|44-47" data-trim class="language-typescript">
 						@Component({
 							selector: 'app-imperative',
 							template: `
@@ -227,7 +227,7 @@
 					</code>
 				</pre>
 			</section>
-			<section data-auto-animate data-transition="convex-in concave-out">
+			<section data-auto-animate>
 				<h3>Declarative</h3>
 
 				<pre>
@@ -382,6 +382,39 @@
 				</ul>
 			</section>
 			<section>
+				<section>
+					<h5>Volledig declarative</h5>
+					<pre>
+						<code data-line-numbers data-trim data-noescape data-ln-start-from="17" class="language-typescript">
+							@ViewChild(SortButtonAZ, { read: ElementRef }) sortButtonAZ!: ElementRef;
+							@ViewChild(SortButtonDate, { read: ElementRef }) sortButtonDate!: ElementRef;
+						  
+							sortedList$ = timer(0).pipe(
+								switchMap(() => 
+									merge(
+										  fromEvent(this.sortButtonAZ.nativeElement, 'click').pipe(map(() => Sort.alphabetically)),
+										  fromEvent(this.sortButtonDate.nativeElement, 'click').pipe(map(() => Sort.date)),
+									)
+								),
+							  // Do something with the latest emitted value
+							)
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h5>Combinatie van beide</h5>
+					<pre>
+						<code data-line-numbers data-trim data-noescape data-ln-start-from="17" class="language-typescript">
+							sortDirection$ = new BehaviorSubject(Sort.none);
+	
+							changeSortDirection(sort: Sort) {
+								  this.sortDirection$.next(sort)
+							}
+						</code>
+					</pre>
+				</section>
+			</section>
+			<section>
 				<h1>Summary</h1>
 
 				<aside class="notes">
@@ -449,7 +482,7 @@
 		Reveal.initialize({
 			hash: false,
 			controls: false,
-
+			navigationMode: 'linear',
 			// Learn about plugins: https://revealjs.com/plugins/
 			plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
 		});
